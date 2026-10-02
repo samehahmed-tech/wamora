@@ -19,6 +19,7 @@ import { AntiBlockView } from './components/AntiBlockView';
 import { BotManagerView } from './components/BotManagerView';
 import { LiveChatView } from './components/LiveChatView';
 import { MetaView } from './components/MetaView';
+import { AutomationView } from './components/AutomationView';
 import { ContactsView } from './components/ContactsView';
 import { GroupsView } from './components/GroupsView';
 import { AccountsView } from './components/AccountsView';
@@ -407,6 +408,10 @@ export default function App() {
 
             {loaded && currentTab === 'meta' && (
               <MetaView onUnread={setMetaUnread} />
+            )}
+
+            {loaded && currentTab === 'automation' && (
+              <AutomationView />
             )}
 
             {loaded && currentTab === 'contacts' && (

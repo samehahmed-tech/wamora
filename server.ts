@@ -43,6 +43,7 @@ import {
   type SendJob,
 } from './server/engine';
 import { readJSON, writeJSON, DATA_DIR, syncFromSupabase } from './server/store';
+import { getWorkflows, saveWorkflow, deleteWorkflow, getRuns, runWorkflow, automationTick } from './server/modules/automation/service';
 import { checkLicense, licenseHeartbeat, getLicense, requireLicensed, activateLicense } from './server/license';
 import {
   metaStatus,
@@ -251,6 +252,50 @@ async function startServer() {
       res.status(400).json({ error: err?.message || 'تعذر التفعيل.' });
     }
   });
+
+  // ------------------------------------------------------------ v2 additive APIs (automation)
+  app.get('/api/v2/automations', (_req, res) => res.json(getWorkflows()));
+
+  app.put('/api/v2/automations', (req, res) => {
+    try {
+      const b = req.body || {};
+      if (!String(b.name || '').trim()) return res.status(400).json({ error: 'اسم workflow مطلوب.' });
+      const w = {
+        id: String(b.id || `wf-${Date.now().toString(36)}`),
+        name: String(b.name).trim(),
+        enabled: b.enabled !== false,
+        trigger: { type: b.trigger?.type || 'manual', everyMinutes: Number(b.trigger?.everyMinutes) || 60 },
+        steps: Array.isArray(b.steps) ? b.steps.slice(0, 20) : [],
+        createdAt: String(b.createdAt || new Date().toISOString()),
+      };
+      res.json(saveWorkflow(w as any));
+    } catch (err: any) {
+      res.status(400).json({ error: err?.message || 'تعذر الحفظ.' });
+    }
+  });
+
+  app.delete('/api/v2/automations/:id', (req, res) => {
+    deleteWorkflow(req.params.id);
+    res.json({ ok: true });
+  });
+
+  app.get('/api/v2/automations/:id/runs', (req, res) => {
+    res.json(getRuns(req.params.id));
+  });
+
+  app.post('/api/v2/automations/:id/run', async (req, res) => {
+    try {
+      const phones = Array.isArray(req.body?.phones) ? req.body.phones.map((p: unknown) => String(p).replace(/[^0-9]/g, '')) : [];
+      res.json(await runWorkflow(req.params.id, phones, 'manual'));
+    } catch (err: any) {
+      res.status(400).json({ error: err?.message || 'تعذر التشغيل.' });
+    }
+  });
+
+  // background tick (additive, isolated try/catch)
+  setInterval(() => {
+    automationTick().catch((err: any) => console.error('[automation] tick:', err?.message));
+  }, 60_000);
 
   // ------------------------------------------------------------ accounts (multi-number)
   app.get('/api/accounts', (_req, res) => {
