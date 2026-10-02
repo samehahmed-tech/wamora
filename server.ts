@@ -43,11 +43,12 @@ import {
   type SendJob,
 } from './server/engine';
 import { readJSON, writeJSON, DATA_DIR, syncFromSupabase } from './server/store';
+import { audit, getAudit } from './server/modules/audit/service';
+import { notify, getNotifications, markNoticeRead, unreadCount } from './server/modules/notifications/service';
 import { checkLicense, licenseHeartbeat, getLicense, requireLicensed, activateLicense } from './server/license';
 import {
   metaStatus,
-  connectMeta,
-  disconnectMeta,
+  connectMeta,  disconnectMeta,
   getMetaSettings,
   setAutoReplyComments,
   getMetaConversations,
@@ -246,10 +247,27 @@ async function startServer() {
   app.post('/api/license/activate', async (req, res) => {
     try {
       const s = await activateLicense(String(req.body?.key || ''));
+      audit(s.ok ? 'license.activated' : 'license.blocked', { module: 'license', result: s.ok ? 'ok' : 'error', detail: s.status });
       res.json(s);
     } catch (err: any) {
       res.status(400).json({ error: err?.message || 'تعذر التفعيل.' });
     }
+  });
+
+  // ------------------------------------------------------------ v2 additive APIs (foundation)
+  app.get('/api/v2/audit-log', (req, res) => {
+    const limit = Math.max(1, Math.min(500, Number(req.query.limit) || 100));
+    const module = typeof req.query.module === 'string' ? req.query.module : undefined;
+    res.json(getAudit(limit, module));
+  });
+
+  app.get('/api/v2/notifications', (req, res) => {
+    res.json({ unread: unreadCount(), items: getNotifications(req.query.unread === '1') });
+  });
+
+  app.post('/api/v2/notifications/:id/read', (req, res) => {
+    markNoticeRead(req.params.id);
+    res.json({ ok: true, unread: unreadCount() });
   });
 
   // ------------------------------------------------------------ accounts (multi-number)
@@ -515,6 +533,7 @@ async function startServer() {
     if (gate) return res.status(403).json({ error: gate });
     const result = startCampaign(req.params.id, (req.body || {}).force === true);
     if (!result.ok) return res.status(400).json({ error: result.error });
+    audit('campaign.started', { module: 'campaigns', entity: req.params.id });
     res.json({ ok: true });
   });
 
@@ -600,6 +619,7 @@ async function startServer() {
       delete reports[req.params.id];
       await writeJSON('reports', reports);
     }
+    audit('campaign.deleted', { module: 'campaigns', entity: req.params.id });
     emit({ type: 'campaigns' });
     res.json({ ok: true });
   });
@@ -725,6 +745,7 @@ async function startServer() {
   app.post('/api/meta/connect', async (req, res) => {
     try {
       const s = await connectMeta(String(req.body?.token || ''));
+      audit('meta.connected', { module: 'meta', detail: s.pageName });
       res.json(metaStatus());
     } catch (err: any) {
       res.status(400).json({ error: err?.message || 'تعذر الربط.' });
@@ -733,6 +754,7 @@ async function startServer() {
 
   app.post('/api/meta/disconnect', (_req, res) => {
     disconnectMeta();
+    audit('meta.disconnected', { module: 'meta' });
     res.json({ ok: true });
   });
 

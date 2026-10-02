@@ -611,6 +611,15 @@ async function workerLoop() {
             cmp.completedAt = new Date().toISOString();
             saveCampaigns(camps);
             saveCampaignSnapshot({ ...cmp });
+            // foundation hooks (additive: notify + audit, never throw)
+            try {
+              const { notify } = await import('./modules/notifications/service');
+              const { audit } = await import('./modules/audit/service');
+              notify('campaign.completed', `اكتملت حملة ${cmp.name}`, `${cmp.sentCount} مرسلة / ${cmp.failedCount} فاشلة`);
+              audit('campaign.completed', { module: 'campaigns', entity: cmp.id, detail: cmp.name });
+            } catch {
+              /* ignore */
+            }
           } else {
             saveCampaigns(camps);
           }
