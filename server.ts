@@ -43,6 +43,8 @@ import {
   type SendJob,
 } from './server/engine';
 import { readJSON, writeJSON, DATA_DIR, syncFromSupabase } from './server/store';
+import { getCustomers, upsertCustomer, moveStage, deleteCustomer, customerCard } from './server/modules/crm/service';
+import { getTasks, createTask, updateTask, deleteTask } from './server/modules/tasks/service';
 import { checkLicense, licenseHeartbeat, getLicense, requireLicensed, activateLicense } from './server/license';
 import {
   metaStatus,
@@ -250,6 +252,61 @@ async function startServer() {
     } catch (err: any) {
       res.status(400).json({ error: err?.message || 'تعذر التفعيل.' });
     }
+  });
+
+  // ------------------------------------------------------------ v2 additive APIs (crm + tasks)
+  app.get('/api/v2/customers', (_req, res) => res.json(getCustomers()));
+
+  app.get('/api/v2/customers/:phone', (req, res) => {
+    const card = customerCard(req.params.phone);
+    if (!card) return res.status(404).json({ error: 'العميل غير موجود.' });
+    res.json(card);
+  });
+
+  app.put('/api/v2/customers', (req, res) => {
+    try {
+      res.json(upsertCustomer(req.body || {}));
+    } catch (err: any) {
+      res.status(400).json({ error: err?.message || 'تعذر الحفظ.' });
+    }
+  });
+
+  app.post('/api/v2/customers/:phone/stage', (req, res) => {
+    try {
+      const c = moveStage(req.params.phone, String(req.body?.stage || ''));
+      if (!c) return res.status(404).json({ error: 'العميل غير موجود.' });
+      res.json(c);
+    } catch (err: any) {
+      res.status(400).json({ error: err?.message || 'تعذر النقل.' });
+    }
+  });
+
+  app.delete('/api/v2/customers/:phone', (req, res) => {
+    deleteCustomer(req.params.phone);
+    res.json({ ok: true });
+  });
+
+  app.get('/api/v2/tasks', (req, res) => {
+    res.json(getTasks(typeof req.query.status === 'string' ? req.query.status : undefined));
+  });
+
+  app.post('/api/v2/tasks', (req, res) => {
+    try {
+      res.json(createTask(req.body || {}));
+    } catch (err: any) {
+      res.status(400).json({ error: err?.message || 'تعذر الإنشاء.' });
+    }
+  });
+
+  app.put('/api/v2/tasks/:id', (req, res) => {
+    const t = updateTask(req.params.id, req.body || {});
+    if (!t) return res.status(404).json({ error: 'المهمة غير موجودة.' });
+    res.json(t);
+  });
+
+  app.delete('/api/v2/tasks/:id', (req, res) => {
+    deleteTask(req.params.id);
+    res.json({ ok: true });
   });
 
   // ------------------------------------------------------------ accounts (multi-number)

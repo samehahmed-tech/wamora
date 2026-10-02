@@ -6,6 +6,7 @@ import {
   Megaphone,
   MessageSquareText,
   Facebook,
+  Briefcase,
   Users,
   BookmarkCheck,
   Bot,
@@ -66,6 +67,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
     title: 'الإدارة والأتمتة',
     items: [
       { id: 'contacts', labelAr: 'جهات الاتصال', icon: Users },
+      { id: 'crm', labelAr: 'العملاء (CRM)', icon: Briefcase },
       { id: 'groups', labelAr: 'المجموعات', icon: Users },
       { id: 'templates', labelAr: 'القوالب', icon: BookmarkCheck },
       { id: 'accounts', labelAr: 'الأرقام والحسابات', icon: Smartphone },
