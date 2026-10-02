@@ -1,0 +1,11 @@
+node_modules
+dist
+server-data
+*.log
+.git
+.gitignore
+.env
+.DS_Store
+Caddyfile
+docker-compose.yml
+Dockerfile

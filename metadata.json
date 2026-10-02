@@ -1,0 +1,6 @@
+{
+  "name": "WhatsPro - منصة التسويق والأتمتة الذكية عبر واتساب",
+  "description": "منصة سحابية متكاملة لإدارة حملات الواتساب التسويقية، بوت الرد الذكي، خوارزميات مكافحة الحظر، وإدارة المحادثات والإحصائيات والربط البرمجي API.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ar" dir="rtl" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wamora — وامورا | التسويق والأتمتة الذكية عبر واتساب</title>
+    <meta name="description" content="Wamora by Coduis Company — منصة ذاتية مجانية لإدارة حملات الواتساب، بوت الرد الذكي، الحماية من الحظر، وإدارة المحادثات والربط البرمجي API." />
+    <meta property="og:title" content="Wamora — التسويق والأتمتة الذكية عبر واتساب" />
+    <meta property="og:description" content="منصة ذاتية مجانية لإدارة حملات الواتساب التسويقية، بوت الرد الذكي، خوارزميات مكافحة الحظر، وإدارة المحادثات والربط البرمجي API." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      try {
+        var t = localStorage.getItem('wamora-theme') || 'dark';
+        if (t === 'light') document.documentElement.classList.remove('dark');
+        else document.documentElement.classList.add('dark');
+      } catch (e) {
+        document.documentElement.classList.add('dark');
+      }
+    </script>
+  </head>
+  <body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
