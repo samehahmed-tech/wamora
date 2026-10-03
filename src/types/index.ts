@@ -6,6 +6,7 @@ export type NavigationTab =
   | 'anti_block'
   | 'bot_manager'
   | 'inbox'
+  | 'unified'
   | 'meta'
   | 'contacts'
   | 'groups'

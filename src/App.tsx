@@ -18,6 +18,7 @@ import { MessageTemplatesView } from './components/MessageTemplatesView';
 import { AntiBlockView } from './components/AntiBlockView';
 import { BotManagerView } from './components/BotManagerView';
 import { LiveChatView } from './components/LiveChatView';
+import { UnifiedInboxView } from './components/UnifiedInboxView';
 import { MetaView } from './components/MetaView';
 import { ContactsView } from './components/ContactsView';
 import { GroupsView } from './components/GroupsView';
@@ -403,6 +404,10 @@ export default function App() {
 
             {loaded && currentTab === 'inbox' && (
               <LiveChatView conversations={conversations} />
+            )}
+
+            {loaded && currentTab === 'unified' && (
+              <UnifiedInboxView />
             )}
 
             {loaded && currentTab === 'meta' && (

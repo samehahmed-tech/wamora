@@ -43,6 +43,7 @@ import {
   type SendJob,
 } from './server/engine';
 import { readJSON, writeJSON, DATA_DIR, syncFromSupabase } from './server/store';
+import { getUnifiedInbox, assignThread, tagThread, addThreadNote, getThreadNotes } from './server/modules/inbox/service';
 import { checkLicense, licenseHeartbeat, getLicense, requireLicensed, activateLicense } from './server/license';
 import {
   metaStatus,
@@ -249,6 +250,49 @@ async function startServer() {
       res.json(s);
     } catch (err: any) {
       res.status(400).json({ error: err?.message || 'تعذر التفعيل.' });
+    }
+  });
+
+  // ------------------------------------------------------------ v2 additive APIs (unified inbox)
+  app.get('/api/v2/inbox', (req, res) => {
+    let list = getUnifiedInbox();
+    const { channel, assigned, q } = req.query as Record<string, string>;
+    if (channel) list = list.filter((t) => t.channel === channel);
+    if (assigned) list = list.filter((t) => t.assignedTo === assigned);
+    if (q) {
+      const s = q.toLowerCase();
+      list = list.filter((t) => t.name.toLowerCase().includes(s) || t.handle.includes(s) || t.lastMessage.toLowerCase().includes(s));
+    }
+    res.json(list);
+  });
+
+  app.post('/api/v2/inbox/assign', (req, res) => {
+    const { key, assignedTo } = req.body || {};
+    if (!key) return res.status(400).json({ error: 'key مطلوب.' });
+    assignThread(String(key), String(assignedTo || ''));
+    res.json({ ok: true });
+  });
+
+  app.post('/api/v2/inbox/tags', (req, res) => {
+    const { key, tags } = req.body || {};
+    if (!key) return res.status(400).json({ error: 'key مطلوب.' });
+    tagThread(String(key), Array.isArray(tags) ? tags : []);
+    res.json({ ok: true });
+  });
+
+  app.get('/api/v2/inbox/notes', (req, res) => {
+    const key = String(req.query.key || '');
+    if (!key) return res.status(400).json({ error: 'key مطلوب.' });
+    res.json(getThreadNotes(key));
+  });
+
+  app.post('/api/v2/inbox/notes', (req, res) => {
+    try {
+      const { key, author, text } = req.body || {};
+      if (!key) return res.status(400).json({ error: 'key مطلوب.' });
+      res.json(addThreadNote(String(key), String(author || ''), String(text || '')));
+    } catch (err: any) {
+      res.status(400).json({ error: err?.message || 'تعذر الحفظ.' });
     }
   });
 
