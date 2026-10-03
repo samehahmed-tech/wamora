@@ -43,6 +43,7 @@ import {
   type SendJob,
 } from './server/engine';
 import { readJSON, writeJSON, DATA_DIR, syncFromSupabase } from './server/store';
+import { searchLeads, getLeads, saveLeads, deleteLead, leadsToCsv } from './server/modules/leads/service';
 import { checkLicense, licenseHeartbeat, getLicense, requireLicensed, activateLicense } from './server/license';
 import {
   metaStatus,
@@ -250,6 +251,35 @@ async function startServer() {
     } catch (err: any) {
       res.status(400).json({ error: err?.message || 'تعذر التفعيل.' });
     }
+  });
+
+  // ------------------------------------------------------------ v2 additive APIs (lead finder)
+  app.post('/api/v2/leads/search', async (req, res) => {
+    try {
+      const { city, category, keyword, limit } = req.body || {};
+      res.json(await searchLeads({ city, category: category || 'restaurant', keyword: keyword || '', limit }));
+    } catch (err: any) {
+      res.status(502).json({ error: err?.message || 'تعذر البحث.' });
+    }
+  });
+
+  app.get('/api/v2/leads', (_req, res) => res.json(getLeads()));
+
+  app.post('/api/v2/leads/save', (req, res) => {
+    const items = Array.isArray(req.body?.items) ? req.body.items : [];
+    const tags = Array.isArray(req.body?.tags) ? req.body.tags.map((t: unknown) => String(t)) : [];
+    res.json(saveLeads(items.slice(0, 500), tags));
+  });
+
+  app.delete('/api/v2/leads/:id', (req, res) => {
+    deleteLead(req.params.id);
+    res.json({ ok: true });
+  });
+
+  app.get('/api/v2/leads/export.csv', (_req, res) => {
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="leads.csv"');
+    res.send(leadsToCsv(getLeads()));
   });
 
   // ------------------------------------------------------------ accounts (multi-number)

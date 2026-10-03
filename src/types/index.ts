@@ -7,6 +7,7 @@ export type NavigationTab =
   | 'bot_manager'
   | 'inbox'
   | 'meta'
+  | 'lead_finder'
   | 'contacts'
   | 'groups'
   | 'accounts'
