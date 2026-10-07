@@ -12,6 +12,7 @@ import {
   ShieldAlert,
   Code2,
   CreditCard,
+  DatabaseBackup,
   Smartphone,
   QrCode,
   Check,
@@ -76,6 +77,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
   {
     title: 'النظام',
     items: [
+      { id: 'backup', labelAr: 'النسخ الاحتياطي', icon: DatabaseBackup },
       { id: 'api_docs', labelAr: 'API والمطورون', icon: Code2 },
       { id: 'billing', labelAr: 'الاستخدام', icon: CreditCard },
     ],

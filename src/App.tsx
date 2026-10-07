@@ -19,6 +19,7 @@ import { AntiBlockView } from './components/AntiBlockView';
 import { BotManagerView } from './components/BotManagerView';
 import { LiveChatView } from './components/LiveChatView';
 import { MetaView } from './components/MetaView';
+import { BackupView } from './components/BackupView';
 import { ContactsView } from './components/ContactsView';
 import { GroupsView } from './components/GroupsView';
 import { AccountsView } from './components/AccountsView';
@@ -454,6 +455,10 @@ export default function App() {
                 campaignsCount={campaigns.length}
                 conversationsCount={conversations.length}
               />
+            )}
+
+            {loaded && currentTab === 'backup' && (
+              <BackupView />
             )}
               </motion.div>
             </AnimatePresence>

@@ -43,6 +43,7 @@ import {
   type SendJob,
 } from './server/engine';
 import { readJSON, writeJSON, DATA_DIR, syncFromSupabase } from './server/store';
+import { createBackup, listBackups, deleteBackup, restoreBackup, autoBackupTick, readBackup } from './server/modules/backup/service';
 import { checkLicense, licenseHeartbeat, getLicense, requireLicensed, activateLicense } from './server/license';
 import {
   metaStatus,
@@ -251,6 +252,48 @@ async function startServer() {
       res.status(400).json({ error: err?.message || 'تعذر التفعيل.' });
     }
   });
+
+  // ------------------------------------------------------------ v2 additive APIs (backup)
+  app.get('/api/v2/backups', (_req, res) => res.json(listBackups()));
+
+  app.post('/api/v2/backups', (_req, res) => {
+    try {
+      res.json(createBackup(false));
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'تعذر النسخ.' });
+    }
+  });
+
+  app.delete('/api/v2/backups/:id', (req, res) => {
+    try {
+      deleteBackup(req.params.id);
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(400).json({ error: err?.message || 'تعذر الحذف.' });
+    }
+  });
+
+  app.post('/api/v2/backups/:id/restore', (req, res) => {
+    try {
+      res.json(restoreBackup(req.params.id));
+    } catch (err: any) {
+      res.status(400).json({ error: err?.message || 'تعذر الاستعادة.' });
+    }
+  });
+
+  app.get('/api/v2/backups/:id/download', (req, res) => {
+    try {
+      const b = readBackup(req.params.id);
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="${req.params.id}.json"`);
+      res.send(JSON.stringify({ v: 1, id: b.id, at: b.at, data: b.data }));
+    } catch (err: any) {
+      res.status(404).json({ error: err?.message || 'غير موجودة.' });
+    }
+  });
+
+  // daily auto-backup (keeps last 7 auto copies)
+  setInterval(() => autoBackupTick(), 24 * 3600_000);
 
   // ------------------------------------------------------------ accounts (multi-number)
   app.get('/api/accounts', (_req, res) => {
