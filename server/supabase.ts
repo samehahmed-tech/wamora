@@ -25,7 +25,7 @@ export function supa(): SupabaseClient | null {
 export const KV_KEYS = [
   'accounts', 'ai', 'antiblock', 'api-keys', 'bot-config', 'bot-rules',
   'campaigns', 'contact-groups', 'contacts', 'conversations', 'license-key', 'meta',
-  'meta-conversations',
+  'meta-conversations', 'team-users',
   'reports', 'sendlog', 'stats', 'templates',
 ] as const;
 

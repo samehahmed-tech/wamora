@@ -41,6 +41,7 @@ interface SidebarProps {
   activeAccountId?: string | null;
   onSelectAccount?: (id: string) => void;
   onNavigate?: (tab: NavigationTab) => void;
+  allowedTabs?: string[] | null;
 }
 
 interface Item {
@@ -76,6 +77,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
   {
     title: 'النظام',
     items: [
+      { id: 'team', labelAr: 'الفريق', icon: Users },
       { id: 'api_docs', labelAr: 'API والمطورون', icon: Code2 },
       { id: 'billing', labelAr: 'الاستخدام', icon: CreditCard },
     ],
@@ -96,6 +98,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeAccountId = null,
   onSelectAccount,
   onNavigate,
+  allowedTabs = null,
 }) => {
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const activeAccount = accounts.find((a) => a.id === activeAccountId) || null;
@@ -123,11 +126,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 pb-3 space-y-4">
-        {SECTIONS.map((sec) => (
+        {SECTIONS.map((sec) => {
+          const visible = sec.items.filter((it) => !allowedTabs || allowedTabs.includes(it.id) || it.id === 'team');
+          if (!visible.length) return null;
+          return (
           <div key={sec.title}>
             <div className="px-2.5 mb-1.5 text-[10px] font-bold text-slate-500">{sec.title}</div>
             <div className="space-y-0.5">
-              {sec.items.map((item) => {
+              {visible.map((item) => {
                 const Icon = item.icon;
                 const isSelected = currentTab === item.id;
                 const { badge, tone } = badgeFor(item.id);
@@ -159,7 +165,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               })}
             </div>
           </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* Connection card -> account switcher */}

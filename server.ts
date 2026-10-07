@@ -43,6 +43,7 @@ import {
   type SendJob,
 } from './server/engine';
 import { readJSON, writeJSON, DATA_DIR, syncFromSupabase } from './server/store';
+import { teamEnabled, getUsers, createUser, setUserActive, deleteUser, verifyPin, createSession, getSession, destroySession, allowedTabs } from './server/modules/team/service';
 import { checkLicense, licenseHeartbeat, getLicense, requireLicensed, activateLicense } from './server/license';
 import {
   metaStatus,
@@ -249,6 +250,67 @@ async function startServer() {
       res.json(s);
     } catch (err: any) {
       res.status(400).json({ error: err?.message || 'تعذر التفعيل.' });
+    }
+  });
+
+  // ------------------------------------------------------------ v2 additive APIs (team)
+  const teamAdmin = (req: express.Request): boolean => {
+    if (!teamEnabled()) return true;
+    const s = getSession(String(req.headers['x-team-token'] || ''));
+    return !!s && (s.role === 'super_admin' || s.role === 'admin');
+  };
+
+  app.get('/api/v2/team/status', (_req, res) => res.json({ enabled: teamEnabled() }));
+
+  app.get('/api/v2/team/tabs', (req, res) => {
+    res.json({ tabs: allowedTabs(String(req.headers['x-team-token'] || '')) });
+  });
+
+  app.get('/api/v2/team/users', (_req, res) => res.json(getUsers()));
+
+  app.post('/api/v2/team/users', (req, res) => {
+    try {
+      if (teamEnabled() && !teamAdmin(req)) return res.status(403).json({ error: 'للإدارة فقط.' });
+      res.json(createUser(String(req.body?.name || ''), String(req.body?.role || 'sales'), String(req.body?.pin || '')));
+    } catch (err: any) {
+      res.status(400).json({ error: err?.message || 'تعذر الإنشاء.' });
+    }
+  });
+
+  app.post('/api/v2/team/login', (req, res) => {
+    const u = verifyPin(String(req.body?.name || ''), String(req.body?.pin || ''));
+    if (!u) return res.status(401).json({ error: 'بيانات الدخول غير صحيحة.' });
+    res.json({ token: createSession(u.id), user: u });
+  });
+
+  app.get('/api/v2/team/me', (req, res) => {
+    const s = getSession(String(req.headers['x-team-token'] || ''));
+    if (!s) return res.status(401).json({ error: 'سجل الدخول أولاً.' });
+    res.json(s);
+  });
+
+  app.post('/api/v2/team/logout', (req, res) => {
+    destroySession(String(req.headers['x-team-token'] || ''));
+    res.json({ ok: true });
+  });
+
+  app.post('/api/v2/team/users/:id/active', (req, res) => {
+    try {
+      if (!teamAdmin(req)) return res.status(403).json({ error: 'للإدارة فقط.' });
+      setUserActive(req.params.id, req.body?.active !== false);
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(400).json({ error: err?.message || 'تعذر التعديل.' });
+    }
+  });
+
+  app.delete('/api/v2/team/users/:id', (req, res) => {
+    try {
+      if (!teamAdmin(req)) return res.status(403).json({ error: 'للإدارة فقط.' });
+      deleteUser(req.params.id);
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(400).json({ error: err?.message || 'تعذر الحذف.' });
     }
   });
 

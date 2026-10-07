@@ -1,7 +1,15 @@
+export const TEAM_TOKEN_KEY = 'wamora-team-token';
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  let teamToken = '';
+  try {
+    teamToken = localStorage.getItem(TEAM_TOKEN_KEY) || '';
+  } catch {
+    /* ignore */
+  }
   const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
     ...init,
+    headers: { 'Content-Type': 'application/json', ...(teamToken ? { 'x-team-token': teamToken } : {}), ...(init?.headers || {}) },
   });
   const data = (await res.json().catch(() => ({}))) as any;
   if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);

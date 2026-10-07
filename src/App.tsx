@@ -27,6 +27,8 @@ import { BillingView } from './components/BillingView';
 import { ConnectionModal } from './components/ConnectionModal';
 import { CommandPalette } from './components/CommandPalette';
 import { LicenseView, LicenseInfo } from './components/LicenseView';
+import { TeamView } from './components/TeamView';
+import { TEAM_TOKEN_KEY } from './api';
 import { Toaster } from './components/kit';
 
 interface Bootstrap {
@@ -79,6 +81,35 @@ export default function App() {
   const [sendLog, setSendLog] = useState<SendLogShape[]>([]);
   const [queuePending, setQueuePending] = useState(0);
   const [metaUnread, setMetaUnread] = useState(0);
+  const [teamEnabled, setTeamEnabled] = useState(false);
+  const [teamUser, setTeamUser] = useState<{ name: string; role: string } | null>(null);
+  const [teamTabs, setTeamTabs] = useState<string[] | null>(null);
+
+  const refreshTeam = useCallback(async () => {
+    try {
+      const st = await get<{ enabled: boolean }>('/api/v2/team/status');
+      setTeamEnabled(!!st.enabled);
+      if (!st.enabled) {
+        setTeamUser(null);
+        setTeamTabs(null);
+        return;
+      }
+      const tabs = await get<{ tabs: string[] }>('/api/v2/team/tabs');
+      setTeamTabs(tabs.tabs || []);
+      try {
+        const me = await get<{ name: string; role: string }>('/api/v2/team/me');
+        setTeamUser(me);
+      } catch {
+        setTeamUser(null);
+      }
+    } catch {
+      /* team module optional */
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshTeam();
+  }, [refreshTeam]);
   const [sentThisHour, setSentThisHour] = useState(0);
   const [geminiReady, setGeminiReady] = useState(false);
   const [license, setLicense] = useState<LicenseInfo | null>(null);
@@ -210,6 +241,16 @@ export default function App() {
     );
   }
 
+  // team gate: when users exist, PIN login required (single mode untouched otherwise)
+  if (loaded && teamEnabled && !teamUser) {
+    return (
+      <div dir={activeLanguage === 'ar' ? 'rtl' : 'ltr'}>
+        <TeamView onSession={refreshTeam} />
+        <Toaster />
+      </div>
+    );
+  }
+
   return (
     <div
       dir={activeLanguage === 'ar' ? 'rtl' : 'ltr'}
@@ -235,6 +276,7 @@ export default function App() {
           onSelectTab={setCurrentTab}
           unreadCount={totalUnreadCount}
           metaUnreadCount={metaUnread}
+          allowedTabs={teamTabs}
           activeCampaignsCount={activeCampaignsCount}
           sentTotal={stats.sent}
           waConnected={isCloudConnected}
@@ -267,7 +309,9 @@ export default function App() {
                 ['api_docs', 'API'],
                 ['billing', 'الاستخدام'],
               ] as [NavigationTab, string][]
-            ).map(([id, label]) => (
+            )
+              .filter(([id]) => !teamTabs || teamTabs.includes(id))
+              .map(([id, label]) => (
               <button
                 key={id}
                 onClick={() => setCurrentTab(id)}
@@ -454,6 +498,10 @@ export default function App() {
                 campaignsCount={campaigns.length}
                 conversationsCount={conversations.length}
               />
+            )}
+
+            {loaded && currentTab === 'team' && (
+              <TeamView onSession={refreshTeam} />
             )}
               </motion.div>
             </AnimatePresence>
